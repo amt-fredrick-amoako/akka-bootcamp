@@ -1,5 +1,6 @@
 ﻿using System;
-﻿using Akka.Actor;
+using System.Reflection.Metadata;
+using Akka.Actor;
 
 namespace WinTail
 {
@@ -10,21 +11,31 @@ namespace WinTail
 
         static void Main(string[] args)
         {
-            // initialize MyActorSystem
-            // YOU NEED TO FILL IN HERE
-
-            PrintInstructions();
-
-            // time to make your first actors!
-            //YOU NEED TO FILL IN HERE
-            // make consoleWriterActor using these props: Props.Create(() => new ConsoleWriterActor())
-            // make consoleReaderActor using these props: Props.Create(() => new ConsoleReaderActor(consoleWriterActor))
+            //PrintInstructions();
 
 
-            // tell console reader to begin
-            //YOU NEED TO FILL IN HERE
+            MyActorSystem = ActorSystem.Create("MyActorSystem");
 
-            // blocks the main thread from exiting until the actor system is shut down
+            Props consoleWriterProps = Props.Create<ConsoleWriterActor>();
+
+            IActorRef consoleWriterActor = MyActorSystem.ActorOf(consoleWriterProps);
+
+            Props validationActorProps = Props.Create(() => new ValidationActor(consoleWriterActor));
+
+            //IActorRef validationActor = MyActorSystem.ActorOf(validationActorProps);
+
+            Props tailCoordinatorProps = Props.Create(() => new TailCoordinatorActor());
+            IActorRef tailCoordinatorActor = MyActorSystem.ActorOf(tailCoordinatorProps, "tailCoordinatorActor");
+
+            Props fileValidatorActorProps = Props.Create(() => new FileValidatorActor(consoleWriterActor));
+            IActorRef fileValidationActor = MyActorSystem.ActorOf(fileValidatorActorProps, "validationActor");
+            Props consoleReaderProps = Props.Create<ConsoleReaderActor>();
+
+            IActorRef consoleReaderActor = MyActorSystem.ActorOf(consoleReaderProps, "consoleReaderActor");
+
+            consoleReaderActor.Tell(ConsoleReaderActor.StartCommand);
+
+
             MyActorSystem.WhenTerminated.Wait();
         }
 

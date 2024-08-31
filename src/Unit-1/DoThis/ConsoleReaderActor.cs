@@ -1,5 +1,5 @@
-using System;
 using Akka.Actor;
+using System;
 
 namespace WinTail
 {
@@ -10,30 +10,57 @@ namespace WinTail
     class ConsoleReaderActor : UntypedActor
     {
         public const string ExitCommand = "exit";
-        private IActorRef _consoleWriterActor;
-
-        public ConsoleReaderActor(IActorRef consoleWriterActor)
-        {
-            _consoleWriterActor = consoleWriterActor;
-        }
+        public const string StartCommand = "start";
 
         protected override void OnReceive(object message)
         {
-            var read = Console.ReadLine();
-            if (!string.IsNullOrEmpty(read) && String.Equals(read, ExitCommand, StringComparison.OrdinalIgnoreCase))
+
+            if (message.Equals(StartCommand))
             {
-                // shut down the system (acquire handle to system via
-                // this actors context)
+                DoPrintInstructions();
+            }
+
+            GetAndValidateInput();
+        }
+
+        // in ConsoleReaderActor, after OnReceive()
+        #region Internal methods
+        private void DoPrintInstructions()
+        {
+            //Console.WriteLine("Write whatever you want into the console!");
+            //Console.WriteLine("Some entries will pass validation, and some won't...\n\n");
+            //Console.WriteLine("Type 'exit' to quit this application at any time.\n");
+            Console.WriteLine("Please provide the URI of a log file on disk");
+        }
+
+        /// <summary>
+        /// Reads input from console, validates it, then signals appropriate response
+        /// (continue processing, error, success, etc.).
+        /// </summary>
+        private void GetAndValidateInput()
+        {
+            var message = Console.ReadLine();
+            if (!string.IsNullOrEmpty(message) && String.Equals(message, ExitCommand, StringComparison.OrdinalIgnoreCase))
+            {
                 Context.System.Terminate();
                 return;
             }
 
-            // send input to the console writer to process and print
-            // YOU NEED TO FILL IN HERE
-
-            // continue reading messages from the console
-            // YOU NEED TO FILL IN HERE
+            Context.ActorSelection("akka://MyActorSystem/user/validationActor").Tell(message);
         }
+
+        /// <summary>
+        /// Validates <see cref="message"/>.
+        /// Currently says messages are valid if contain even number of characters.
+        /// </summary>
+        /// <param name="message"></param>
+        /// <returns></returns>
+        private static bool IsValid(string message)
+        {
+            var valid = message.Length % 2 == 0;
+            return valid;
+        }
+        #endregion
 
     }
 }
